@@ -1,5 +1,5 @@
 # Self-hosted GitHub Actions Runner (Repo & Org Supported)
-
+[中文文档](./README_CN.md)
 A powerful, self-hosted GitHub Actions Runner image that **seamlessly supports both Organization-level and Repository-level registration**.
 
 Designed for modularity, you can easily customize the build environment or add runtime commands by modifying the provided scripts.
