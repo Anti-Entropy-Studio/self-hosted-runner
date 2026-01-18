@@ -9,7 +9,7 @@ echo ">>> Installing dependencies and configuring repositories..."
 # 更新并安装基础工具
 apt-get update -y
 apt-get install -y --no-install-recommends \
-    curl wget git build-essential libssl-dev libffi-dev \
+    curl wget git build-essential libssl-dev unzip libffi-dev \
     python3 python3-venv python3-dev python3-pip \
     jq sudo openssh-client openssh-server software-properties-common \
     gnupg lsb-release ca-certificates apt-transport-https \
