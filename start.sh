@@ -57,7 +57,6 @@ if [[ -n "${ACCESS_TOKEN}" && -z "${REGISTRATION_TOKEN}" ]]; then
 # 策略 B: 静态令牌警告 (针对组织级)
 # ------------------------------------------------------------------------------
 elif [[ -n "${REGISTRATION_TOKEN}" && "${CONTEXT_TYPE}" == "org" ]]; then
-    # Warning logic as requested
     echo "========================================================================"
     echo "!!! WARNING: Organization Registration Detected with Static Token !!!"
     echo "========================================================================"
@@ -164,7 +163,51 @@ EOF
 pm2 start "/usr/sbin/sshd -D -f /home/docker/sshd_config" --name "sshd-server"
 
 # ==============================================================================
-# 5. Execution / 启动运行
+# 5. Web Service (Optional) / 可选 Web 服务 (Port 7860)
+# ==============================================================================
+# Checks WEB_REPO env var. Format: "URL:BRANCH" or just "URL"
+# 检查 WEB_REPO 环境变量。格式："URL:分支" 或 仅 "URL"
+
+if [ -n "$WEB_REPO" ]; then
+    echo ">>> Detected WEB_REPO configuration..."
+    
+    # Parse URL and Branch
+    # 解析 URL 和 分支
+    if [[ "$WEB_REPO" == *":"* ]]; then
+        REPO_URL="${WEB_REPO%%:*}"    # Left of colon
+        REPO_BRANCH="${WEB_REPO##*:}"  # Right of colon
+    else
+        REPO_URL="$WEB_REPO"
+        REPO_BRANCH="main"             # Default branch
+    fi
+
+    TARGET_DIR="/home/docker/web_app"
+
+    # Clean old directory if exists
+    if [ -d "$TARGET_DIR" ]; then
+        echo "Cleaning up existing directory: $TARGET_DIR"
+        rm -rf "$TARGET_DIR"
+    fi
+
+    # Clone Repository
+    echo "Cloning $REPO_URL (Branch: $REPO_BRANCH)..."
+    # We use '|| true' to prevent script exit if clone fails, allowing runner to still start
+    # 使用 '|| true' 防止克隆失败导致脚本退出，确保 Runner 仍能启动
+    git clone -b "$REPO_BRANCH" "$REPO_URL" "$TARGET_DIR" || echo "!!! Clone Failed"
+
+    # Start Server if directory exists
+    if [ -d "$TARGET_DIR" ]; then
+        echo "√ Clone successful. Starting HTTP server on port 7860..."
+        pm2 start "python3 -m http.server 7860 --directory $TARGET_DIR" --name "web-7860"
+    else
+        echo "!!! Directory not found. Skipping web server startup."
+    fi
+else
+    echo ">>> No WEB_REPO environment variable set. Skipping 7860 service."
+fi
+
+# ==============================================================================
+# 6. Execution / 启动运行
 # ==============================================================================
 echo ">>> Starting Actions Runner..."
 echo ">>> Security Note: Tokens are stripped from the runner process environment."
