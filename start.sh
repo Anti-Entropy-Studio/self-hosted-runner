@@ -171,14 +171,27 @@ pm2 start "/usr/sbin/sshd -D -f /home/docker/sshd_config" --name "sshd-server"
 if [ -n "$WEB_REPO" ]; then
     echo ">>> Detected WEB_REPO configuration..."
     
-    # Parse URL and Branch
-    # 解析 URL 和 分支
-    if [[ "$WEB_REPO" == *":"* ]]; then
-        REPO_URL="${WEB_REPO%%:*}"    # Left of colon
-        REPO_BRANCH="${WEB_REPO##*:}"  # Right of colon
-    else
+    # ---------------------------------------------------------
+    # FIX: Robust Parsing Logic for "URL:BRANCH"
+    # 修复：更稳健的 "URL:分支" 解析逻辑
+    # ---------------------------------------------------------
+    
+    # Attempt to strip the last colon and everything after it
+    # 尝试剥离最后一个冒号及之后的内容
+    POTENTIAL_URL="${WEB_REPO%:*}"
+    
+    # Check if we accidentally stripped the protocol (e.g., https:// -> https)
+    # 检查是否意外剥离了协议部分 (例如把 https:// 切成了 https)
+    if [ "$POTENTIAL_URL" == "https" ] || [ "$POTENTIAL_URL" == "http" ]; then
+        # If yes, it means there was no branch specified
+        # 如果是，说明用户没有指定分支，刚才切到协议头了
         REPO_URL="$WEB_REPO"
-        REPO_BRANCH="main"             # Default branch
+        REPO_BRANCH="main"
+    else
+        # If no, the split was valid.
+        # 否则，分割是有效的
+        REPO_URL="$POTENTIAL_URL"
+        REPO_BRANCH="${WEB_REPO##*:}"
     fi
 
     TARGET_DIR="/home/docker/web_app"
@@ -191,8 +204,9 @@ if [ -n "$WEB_REPO" ]; then
 
     # Clone Repository
     echo "Cloning $REPO_URL (Branch: $REPO_BRANCH)..."
-    # We use '|| true' to prevent script exit if clone fails, allowing runner to still start
-    # 使用 '|| true' 防止克隆失败导致脚本退出，确保 Runner 仍能启动
+    
+    # Using '|| true' to prevent container exit on clone failure
+    # 使用 '|| true' 防止克隆失败导致容器退出
     git clone -b "$REPO_BRANCH" "$REPO_URL" "$TARGET_DIR" || echo "!!! Clone Failed"
 
     # Start Server if directory exists
