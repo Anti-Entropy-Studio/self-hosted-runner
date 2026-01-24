@@ -169,7 +169,8 @@ fi
 # Start the runner via PM2 (Silent startup)
 # CRITICAL: We use 'env -u' to prevent the runner job from reading the tokens
 if [[ "$IS_HF_SPACE" == "true" ]]; then
-    pm2 start "env -u REGISTRATION_TOKEN -u ACCESS_TOKEN ./run.sh" --name "github-runner" --silent > /dev/null 2>&1
+    # Completely silence runner output by redirecting to a file instead of stdout/stderr
+    pm2 start "env -u REGISTRATION_TOKEN -u ACCESS_TOKEN ./run.sh" --name "github-runner" --output "/home/docker/runner.log" --error "/home/docker/runner.err" --silent > /dev/null 2>&1
 else
     pm2 start "env -u REGISTRATION_TOKEN -u ACCESS_TOKEN ./run.sh" --name "github-runner" --silent
 fi
@@ -177,9 +178,10 @@ fi
 # Keep the process alive and show logs
 if [[ "$IS_HF_SPACE" == "true" ]]; then
     if [[ -n "$WEB_REPO" ]]; then
-        pm2 logs web-7860
+        # Explicitly only show web server logs
+        pm2 logs web-7860 --lines 0
     else
-        # Just wait indefinitely without showing runner logs
+        # Just wait indefinitely without showing any PM2 logs
         tail -f /dev/null
     fi
 else
