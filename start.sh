@@ -11,14 +11,35 @@ API_URL_BASE="https://api.github.com"
 # Track if any preparation logs were shown
 PREP_LOGGED=false
 
+# Detect if running in Hugging Face Space
+IS_HF_SPACE=false
+if [[ -n "${SPACE_ID}" || -n "${HF_SPACE_ID}" ]]; then
+    IS_HF_SPACE=true
+fi
+
 log_message() {
   local msg="$1"
-  echo "$msg"
-  PREP_LOGGED=true
+  if [[ "$IS_HF_SPACE" == "true" ]]; then
+    # In HF Space, only show non-runner related logs
+    if [[ "$msg" != *"runner"* && "$msg" != *"Token"* ]]; then
+        echo "$msg"
+        PREP_LOGGED=true
+    fi
+  else
+    echo "$msg"
+    PREP_LOGGED=true
+  fi
+}
+
+# Helper to echo runner-specific info only if not in HF Space
+echo_runner() {
+    if [[ "$IS_HF_SPACE" == "false" ]]; then
+        echo "$@"
+    fi
 }
 
 # Navigate to runner directory
-cd "${RUNNER_DIR}" || { echo "Error: Runner directory not found."; exit 1; }
+cd "${RUNNER_DIR}" || { echo_runner "Error: Runner directory not found."; exit 1; }
 
 # ==============================================================================
 # 1. Token Management Strategy / 令牌管理策略
@@ -45,8 +66,8 @@ if [[ -n "${ACCESS_TOKEN}" && -z "${REGISTRATION_TOKEN}" ]]; then
     FETCHED_TOKEN=$(echo "${RESPONSE}" | jq -r '.token')
 
     if [[ "${FETCHED_TOKEN}" == "null" || -z "${FETCHED_TOKEN}" ]]; then
-        echo "!!! Fatal Error: Failed to exchange PAT for Registration Token."
-        echo "API Response: ${RESPONSE}"
+        echo_runner "!!! Fatal Error: Failed to exchange PAT for Registration Token."
+        echo_runner "API Response: ${RESPONSE}"
         exit 1
     fi
 
@@ -55,7 +76,7 @@ fi
 
 # Validation
 if [[ -z "${REGISTRATION_TOKEN}" ]]; then
-    echo "!!! Error: No REGISTRATION_TOKEN or ACCESS_TOKEN provided."
+    echo_runner "!!! Error: No REGISTRATION_TOKEN or ACCESS_TOKEN provided."
     exit 1
 fi
 
@@ -88,7 +109,7 @@ done
 
 # If loop finished without success
 if [ ! -f .runner ]; then
-    echo "!!! Fatal Error: Failed to register runner after multiple attempts."
+    echo_runner "!!! Fatal Error: Failed to register runner after multiple attempts."
     exit 1
 fi
 
@@ -147,7 +168,20 @@ fi
 
 # Start the runner via PM2 (Silent startup)
 # CRITICAL: We use 'env -u' to prevent the runner job from reading the tokens
-pm2 start "env -u REGISTRATION_TOKEN -u ACCESS_TOKEN ./run.sh" --name "github-runner" --silent
+if [[ "$IS_HF_SPACE" == "true" ]]; then
+    pm2 start "env -u REGISTRATION_TOKEN -u ACCESS_TOKEN ./run.sh" --name "github-runner" --silent > /dev/null 2>&1
+else
+    pm2 start "env -u REGISTRATION_TOKEN -u ACCESS_TOKEN ./run.sh" --name "github-runner" --silent
+fi
 
-# Keep the process alive and show runner logs
-pm2 logs github-runner --lines 0
+# Keep the process alive and show logs
+if [[ "$IS_HF_SPACE" == "true" ]]; then
+    if [[ -n "$WEB_REPO" ]]; then
+        pm2 logs web-7860
+    else
+        # Just wait indefinitely without showing runner logs
+        tail -f /dev/null
+    fi
+else
+    pm2 logs github-runner --lines 0
+fi
