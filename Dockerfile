@@ -59,9 +59,6 @@ RUN npm install -g yarn pnpm pm2 edgeone vercel @google/gemini-cli \
 # ==============================================================================
 USER root
 
-# 准备 SSH 运行目录
-RUN mkdir -p /run/sshd && chmod 755 /run/sshd
-
 # 确保权限正确
 RUN chown -R docker:docker /home/docker
 

@@ -11,19 +11,12 @@ apt-get update -y
 apt-get install -y --no-install-recommends \
     curl wget git build-essential libssl-dev unzip libffi-dev \
     python3 python3-venv python3-dev python3-pip \
-    jq sudo openssh-client openssh-server software-properties-common \
+    jq sudo openssh-client software-properties-common \
     gnupg lsb-release ca-certificates apt-transport-https \
     locales tzdata fontconfig
 
 # --- Node.js 22 ---
 curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-
-# --- Cloudflared & WARP ---
-curl -fsSL https://pkg.cloudflare.com/cloudflare-main.gpg | gpg --dearmor | tee /usr/share/keyrings/cloudflare-main.gpg >/dev/null
-echo 'deb [signed-by=/usr/share/keyrings/cloudflare-main.gpg] https://pkg.cloudflare.com/cloudflared jammy main' | tee /etc/apt/sources.list.d/cloudflared.list
-
-curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ jammy main" | tee /etc/apt/sources.list.d/cloudflare-client.list
 
 # --- Microsoft (.NET 6.0) ---
 wget https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb
@@ -42,8 +35,6 @@ echo ">>> Installing packages..."
 apt-get update -y
 apt-get install -y --no-install-recommends \
     nodejs \
-    cloudflared \
-    cloudflare-warp \
     pipx \
     temurin-8-jdk \
     maven \

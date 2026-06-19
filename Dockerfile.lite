@@ -38,7 +38,6 @@ RUN mkdir actions-runner && cd actions-runner \
 # ==============================================================================
 # 4. 启动配置
 # ==============================================================================
-RUN mkdir -p /run/sshd && chmod 755 /run/sshd
 RUN chown -R docker:docker /home/docker
 
 COPY --chmod=+x start-lite.sh /start.sh

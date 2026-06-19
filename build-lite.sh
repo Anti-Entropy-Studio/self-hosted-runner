@@ -11,7 +11,7 @@ apt-get update -y
 apt-get install -y --no-install-recommends \
     curl wget git unzip build-essential \
     python3 python3-pip python3-venv \
-    jq sudo openssh-client openssh-server \
+    jq sudo \
     ca-certificates apt-transport-https \
     locales tzdata
 
